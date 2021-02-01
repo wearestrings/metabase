@@ -85,7 +85,8 @@
      driver.common/default-password-details
      driver.common/default-ssl-details
      (assoc driver.common/default-additional-options-details
-       :placeholder  "tinyInt1isBit=false")]))
+       :placeholder  "tinyInt1isBit=false")
+     driver.common/default-fetch-size-details]))
 
 (defmethod sql.qp/add-interval-honeysql-form :mysql
   [driver hsql-form amount unit]

@@ -79,10 +79,8 @@
                         (str "/" service-name)))}
    (dissoc details :host :port :sid :service-name)))
 
-(defmethod driver/can-connect? :oracle
-  [driver details]
-  (let [connection (sql-jdbc.conn/connection-details->spec driver (ssh/include-ssh-tunnel details))]
-    (= 1M (first (vals (first (jdbc/query connection ["SELECT 1 FROM dual"])))))))
+(defmethod driver/test-query :oracle [_]
+  "SELECT 1 FROM DUAL")
 
 (defmethod driver/db-start-of-week :oracle
   [_]

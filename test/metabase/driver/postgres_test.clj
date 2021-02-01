@@ -12,6 +12,8 @@
             [metabase.models.field :refer [Field]]
             [metabase.models.table :refer [Table]]
             [metabase.query-processor :as qp]
+            [metabase.query-processor.context.default :as context.default]
+            [metabase.query-processor.store :as qp.store]
             [metabase.sync :as sync]
             [metabase.sync.sync-metadata :as sync-metadata]
             [metabase.test :as mt]

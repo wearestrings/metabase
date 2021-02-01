@@ -4,11 +4,16 @@
             [metabase.driver :as driver]
             [metabase.driver.sql-jdbc.test-util :as sql-jdbc.tu]
             [metabase.driver.util :as driver.u]
+            [metabase.models.database :refer [Database]]
             [metabase.models.field :refer [Field]]
             [metabase.models.table :as table :refer [Table]]
             [metabase.query-processor :as qp]
             [metabase.test :as mt]
-            [metabase.test.util.log :as tu.log]))
+            [metabase.test.util.log :as tu.log]
+            [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
+            [metabase.query-processor.store :as qp.store]
+            [metabase.util :as u]
+            [metabase.query-processor.context.default :as context.default]))
 
 (deftest describe-database-test
   (is (= {:tables (set (for [table ["CATEGORIES" "VENUES" "CHECKINS" "USERS"]]
@@ -201,3 +206,18 @@
                (mt/dataset test-data-with-time
                  (mt/$ids users
                    (spliced-count-of :users [:= $last_login_time "09:30"])))))))))
+
+(deftest test-jdbc-fetch-size
+  (testing "JDBC fetch size is set correctly in statement from db details"
+    ;; h2 doesn't expose fetch-size in its user-facing properties, since it doesn't really make sense, but we still
+    ;; use it here for purposes of test coverage (it is supported at the H2 JDBC driver level)
+    (mt/test-drivers #{:h2 :mysql :oracle :postgres :redshift}
+      (mt/with-temp Database [db {:engine driver/*driver*, :details (assoc (:details (mt/db)) :fetch-size 14)}]
+        (mt/with-db db
+          (qp.store/with-store
+            (qp.store/fetch-and-store-database! (u/the-id db))
+            (let [max-rows 10000
+                  q        (driver/test-query driver/*driver*)
+                  ctx      (context.default/default-context)
+                  rs-fn    (fn [rs] (is (= 14 (.getFetchSize (.getStatement rs)))))]
+              (#'sql-jdbc.execute/run-fn-with-result-set driver/*driver* q {} max-rows ctx rs-fn))))))))

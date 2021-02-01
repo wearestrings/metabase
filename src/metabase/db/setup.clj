@@ -97,7 +97,7 @@
   (log/info (u/format-color 'cyan (trs "Verifying {0} Database Connection ..." (name db-type))))
   (classloader/require 'metabase.driver.util)
   (let [error-msg (trs "Unable to connect to Metabase {0} DB." (name db-type))]
-    (try (assert (sql-jdbc.conn/can-connect-with-spec? jdbc-spec) error-msg)
+    (try (assert (sql-jdbc.conn/can-connect-with-spec? db-type jdbc-spec) error-msg)
          (catch Throwable e
            (throw (ex-info error-msg {} e)))))
   (jdbc/with-db-metadata [metadata jdbc-spec]
