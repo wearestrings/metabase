@@ -155,9 +155,28 @@
   "**MetabasePass**")
 
 (def ^:const sensitive-fields
-  "List of fields that should be obfuscated in API responses, as they contain sensitive data."
-  [:password :pass :tunnel-pass :tunnel-private-key :tunnel-private-key-passphrase
-   :access-token :refresh-token :service-account-json])
+  "Set of fields that should be obfuscated in API responses, as they contain sensitive data."
+  #{:password :pass :tunnel-pass :tunnel-private-key :tunnel-private-key-passphrase
+    :access-token :refresh-token :service-account-json})
+
+(defn get-sensitive-fields
+  "Gets all sensitive fields that should be redacted in API responses. This includes everything from the
+   sensitive-fields set, along with any custom properties from connection-properties which are marked with a
+   :type :password."
+  [driver]
+  (if
+    ;; we have a driver; check its connection-properties for any password fields
+    (some? driver)
+    (let [all-fields      (driver/connection-properties driver)
+          password-fields (filter #(= (get % :type) :password) all-fields)]
+      (into (vec sensitive-fields) (map (comp keyword :name) password-fields)))
+    ;; no driver, just return the default sensitive-fields
+    (vec sensitive-fields)))
+
+(defn get-sensitive-fields-for-db [database]
+  (if (empty? database)
+    (get-sensitive-fields nil) ;; preserve existing behavior by returning the default sensitive fields
+    (get-sensitive-fields (driver.u/database->driver database))))
 
 ;; when encoding a Database as JSON remove the `details` for any non-admin User. For admin users they can still see
 ;; the `details` but remove anything resembling a password. No one gets to see this in an API response!
@@ -171,5 +190,5 @@
                             (reduce
                              #(m/update-existing %1 %2 (constantly protected-password))
                              details
-                             sensitive-fields))))
+                             (get-sensitive-fields-for-db db)))))
     json-generator)))
