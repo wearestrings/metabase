@@ -165,15 +165,19 @@
    :type :password."
   [driver]
   (if
-    ;; we have a driver; check its connection-properties for any password fields
-    (some? driver)
+    (contains? (driver.u/available-drivers) driver)
+    ;; we have a valid driver; check its connection-properties for any password fields
     (let [all-fields      (driver/connection-properties driver)
           password-fields (filter #(= (get % :type) :password) all-fields)]
-      (into (vec sensitive-fields) (map (comp keyword :name) password-fields)))
-    ;; no driver, just return the default sensitive-fields
-    (vec sensitive-fields)))
+      (into  sensitive-fields (map (comp keyword :name) password-fields)))
+    ;; no valid driver, just return the default sensitive-fields
+    sensitive-fields))
 
-(defn get-sensitive-fields-for-db [database]
+(defn get-sensitive-fields-for-db
+  "Gets all sensitive fields that should be redacted in API responses for a given database. Calls get-sensitive-fields
+  using the given database's driver, if that driver is valid and registered. Refer to get-sensitive-fields Scaladoc
+  for full details."
+  [database]
   (if (empty? database)
     (get-sensitive-fields nil) ;; preserve existing behavior by returning the default sensitive fields
     (get-sensitive-fields (driver.u/database->driver database))))
